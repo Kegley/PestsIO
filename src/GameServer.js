@@ -3,6 +3,10 @@ var http = require('http');
 var fs = require("fs");
 
 var Logs = require('./components/utils/Logs');
+var Messages = require('./components/WSMessages');
+
+var Player = require('./components/entities/Player');
+
 
 function GameServer() {
     console.log("Creating Game Server");
@@ -24,6 +28,8 @@ function GameServer() {
 
     //SERVER INFORMATION
     this.clients = [];
+    this.hills = [];
+    this.ants = [];
 
     //config for GameServer - May differ per node
     this.config = {
@@ -98,6 +104,8 @@ GameServer.prototype.ConnectionSetup = function() {
             // Log disconnections
             this.server.log.onDisconnect(this.socket.remoteAddress);
             console.log("Disconnecting: " + this.socket.remoteAddress);
+            this.socket.player.remove();
+            this.server.removeClient(this.socket);
             this.socket.sendPacket = function() {
                 return;
             }; // Clear function so no packets are sent
@@ -107,11 +115,12 @@ GameServer.prototype.ConnectionSetup = function() {
         ws.remotePort = ws._socket.remotePort;
         this.log.onConnect(ws.remoteAddress); // Log connections
 
-        //ws.playerTracker = new PlayerTracker(this, ws);
-        //ws.packetHandler = new PacketHandler(this, ws);
-
+        //Create a Player
+        ws.player = new Player(this, ws);
+        //Handling Packets from client
+        ws.packetHandler = new Messages(this, ws);
         //HANDLE MESSAGES HERE
-        //ws.on('message', ws.packetHandler.handleMessage.bind(ws.packetHandler));
+        ws.on('message', ws.packetHandler.handleMessage.bind(ws.packetHandler));
 
         var bindObject = {
             server: this,
@@ -136,18 +145,14 @@ GameServer.prototype.mainLoop = function() {    // Timer
     if (this.tick >= 25) {
         this.fullTick++;
         //MOVEMENT TICK
-        //setTimeout(this.moveTick.bind(this), 0);
 
         if (this.fullTick >= 2) {
             // Loop main functions
-            //setTimeout(this.spawnTick.bind(this), 0);
-            //setTimeout(this.gamemodeTick.bind(this), 0);
-            //setTimeout(this.cellUpdateTick.bind(this), 0);
+            setTimeout(this.updateClients.bind(this), 0)
+            setTimeout(this.updateAnts.bind(this), 0);
+            setTimeout(this.updateHills.bind(this), 0)
 
-            // Update the client's maps
-            //this.updateClients();
 
-            // Update cells/leaderboard loop
             this.tickMain++;
             if (this.tickMain >= 4) { // 250 milliseconds
                 // Update leaderboard with the gamemode's method
@@ -161,5 +166,81 @@ GameServer.prototype.mainLoop = function() {    // Timer
         //console.log(this.tick - 25);
         // Reset
         this.tick = 0;
+    }
+};
+
+
+GameServer.prototype.addAnt = function (ant) {
+    this.ants.push(ant);
+}
+
+GameServer.prototype.addHill = function (hill) {
+    this.hills.push(hill)
+}
+
+
+GameServer.prototype.removeAnt = function (ant) {
+    var antID = -1;
+    for(var i = 0; i < this.ants.length; ++i) {
+        if(ant == this.ants[i]){
+            antID = i;
+            break;
+        }
+    }
+    if(antID != -1) {
+        this.ants.splice(antID, 1);
+    }else {
+        console.log("ERROR FINDING ANT");
+    }
+};
+
+GameServer.prototype.removeClient = function (client) {
+    var clientID = -1;
+    for(var i = 0; i < this.clients.length; ++i) {
+        if(client == this.clients[i]){
+            clientID = i;
+            break;
+        }
+    }
+    if(clientID != -1) {
+        this.clients.splice(clientID, 1);
+    }else {
+        console.log("ERROR DISCONNECTING CLIENT");
+    }
+};
+
+GameServer.prototype.removeHill = function (hill) {
+    var hillID = -1;
+    for(var i = 0; i < this.hills.length; ++i) {
+        if(hill == this.hills[i]){
+            hillID = i;
+            break;
+        }
+    }
+    if(hillID != -1) {
+        this.hills.splice(hillID, 1);
+    }else {
+        console.log("ERROR FINDING HILL");
+    }
+};
+
+GameServer.prototype.updateAnts = function() {
+    for (var i = 0; i < this.ants.length; i++) {
+        this.ants[i].update();
+    }
+};
+
+GameServer.prototype.updateClients = function() {
+    for (var i = 0; i < this.clients.length; i++) {
+        if (typeof this.clients[i] == "undefined" || this.clients[i].player.nick == undefined) {
+            continue;
+        }
+        //console.log("Updating Client: " + this.clients[i].player.nick);
+        this.clients[i].player.update();
+    }
+};
+GameServer.prototype.updateHills = function() {
+    for (var i = 0; i < this.hills.length; i++) {
+        this.hills[i].update();
     }
 };

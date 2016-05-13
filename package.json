@@ -4,8 +4,9 @@
   "description": "Pests.io project - inspired by Agar & Slither IO!",
   "main": "src/index.js",
   "dependencies": {
-    "ws": "latest",
-    "vector2-node": "latest"
+    "nodemon": "^1.9.2",
+    "vector2-node": "latest",
+    "ws": "latest"
   },
   "devDependencies": {},
   "scripts": {
