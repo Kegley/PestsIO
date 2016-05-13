@@ -1,7 +1,7 @@
 {
   "name": "Pests",
   "version": "0.0.0",
-  "description": "Pests.io project - inspired by Agar & Slither IO",
+  "description": "Pests.io project - inspired by Agar & Slither IO!",
   "main": "src/index.js",
   "dependencies": {
     "ws": "latest",
