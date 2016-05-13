@@ -1,0 +1,24 @@
+{
+  "name": "Pests",
+  "version": "0.0.0",
+  "description": "Pests.io project - inspired by Agar & Slither IO",
+  "main": "src/index.js",
+  "dependencies": {
+    "ws": "latest",
+    "vector2-node": "latest"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Kegley/PestsIO"
+  },
+  "author": "Joshua Kegley <joshuakegley@gmail.com> JoshuaKegley.com",
+  "license": "Apache License 2.0",
+  "bugs": {
+    "url": "https://github.com/Kegley/PestsIO/issues"
+  },
+  "homepage": "http://www.Pests.io"
+}
