@@ -31,10 +31,19 @@ function GameServer() {
     this.hills = [];
     this.ants = [];
 
+    //REGISTRATION INFORMATION
+    this.lastPlayerId = 0;
+
     //config for GameServer - May differ per node
     this.config = {
+        mapBorderTop: 0,
+        mapBorderBottom: 500,
+        mapBorderLeft: 0,
+        mapBorderRight: 500,
         serverLogLevel: 2,
         serverPort: 443, // Server port
+
+
     }
 
 
@@ -145,10 +154,11 @@ GameServer.prototype.mainLoop = function() {    // Timer
     if (this.tick >= 25) {
         this.fullTick++;
         //MOVEMENT TICK
+        setTimeout(this.moveClients.bind(this), 0);
 
         if (this.fullTick >= 2) {
             // Loop main functions
-            setTimeout(this.updateClients.bind(this), 0)
+            setTimeout(this.updateClients.bind(this), 0);
             setTimeout(this.updateAnts.bind(this), 0);
             setTimeout(this.updateHills.bind(this), 0)
 
@@ -178,6 +188,25 @@ GameServer.prototype.addHill = function (hill) {
     this.hills.push(hill)
 }
 
+GameServer.prototype.getNextNodeId = function() {
+    // Resets integer
+    if (this.lastNodeId > 2147483647) {
+        this.lastNodeId = 1;
+    }
+    return this.lastNodeId++;
+};
+
+GameServer.prototype.getNextPlayerID = function() {
+    // Resets integer
+    if (this.lastPlayerId > 2147483647) {
+        this.lastPlayerId = 1;
+    }
+    return this.lastPlayerId++;
+};
+
+GameServer.prototype.moveClients = function() {
+
+}
 
 GameServer.prototype.removeAnt = function (ant) {
     var antID = -1;
@@ -203,6 +232,7 @@ GameServer.prototype.removeClient = function (client) {
         }
     }
     if(clientID != -1) {
+        console.log("Player " + client.player.playerID + " disconnected...");
         this.clients.splice(clientID, 1);
     }else {
         console.log("ERROR DISCONNECTING CLIENT");
@@ -224,6 +254,18 @@ GameServer.prototype.removeHill = function (hill) {
     }
 };
 
+
+
+GameServer.prototype.spawnFood = function() {
+    var f = new Entity.Food(this.getNextNodeId(), null, this.getRandomPosition(), this.config.foodMass, this);
+    f.setColor(this.getRandomColor());
+
+    this.addNode(f);
+    this.currentFood++;
+};
+
+
+
 GameServer.prototype.updateAnts = function() {
     for (var i = 0; i < this.ants.length; i++) {
         this.ants[i].update();
@@ -243,4 +285,15 @@ GameServer.prototype.updateHills = function() {
     for (var i = 0; i < this.hills.length; i++) {
         this.hills[i].update();
     }
+};
+
+
+//if (this.readyState == WebSocket.OPEN && (this._socket.bufferSize == 0) && packet.build) {
+WebSocket.prototype.sendPacket = function(packet) {
+    this.send(JSON.stringify({
+        msg: packet
+    }));
+    //this.readyState = WebSocket.CLOSED;
+    //this.emit('close');
+    //this.removeAllListeners();
 };

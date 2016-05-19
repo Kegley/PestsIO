@@ -2,24 +2,24 @@ var Position = require('./Position');
 var Node = require('./Node');
 
 
-function Ant(gameServer, homeHill, player, location) {
+function (gameServer, player, location) {
     console.log(location);
     Node.apply(this, Array.prototype.slice.call([gameServer, location]));
     console.log(arguments);
     this.gameServer = gameServer;
     this.homeHill = homeHill;
     this.player = player;
-    this.antID = this.gameServer.getNextNodeId();
-    this.gameServer.addAnt(this);
+    this.FoodID = this.gameServer.getNextNodeId();
+    this.gameServer.addFood(this);
 
     this.hasTarget = false;
     this.targetPosition = {}
     console.log(this);
 }
 
-module.exports = Ant;
+module.exports = Food;
 
-Ant.prototype.update = function() {
+Food.prototype.update = function() {
     if(this.homeHill.mode) {
         //path find to hill
         console.log("attacking");
@@ -29,11 +29,11 @@ Ant.prototype.update = function() {
     }
 }
 
-Ant.prototype.remove = function() {
-    this.gameServer.removeAnt(this);
+Food.prototype.remove = function() {
+    this.gameServer.removeFood(this);
 }
 
-Ant.prototype.move = function(x, y) {
+Food.prototype.move = function(x, y) {
     //crude AF, need to do slow movement to location
     //coming soon
     this.position.x = x;

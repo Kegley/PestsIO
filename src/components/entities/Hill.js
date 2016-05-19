@@ -1,4 +1,5 @@
 /* Hill represents the players homebase, each player has one Hill */
+var Position = require('./Position');
 var Ant = require('./Ant');
 
 function Hill(gameServer, player) {
@@ -10,14 +11,13 @@ function Hill(gameServer, player) {
     this.radius = 0;
 
     //HILL COLONY
-    this.numAnts = 1;
     this.ants = [];
     this.congif = {
         maxNumAnts:10,
         maxRadius: 25
     }
     this.gameServer.addHill(this);
-    this.ants.push(new Ant(this.gameServer, this, this.player));
+    this.ants.push(new Ant(this.gameServer, this, this.player, new Position(0, 0, 0)));
 
     //modes - Find Food = 0, Attack = 1
     this.mode = 0;
@@ -26,7 +26,7 @@ function Hill(gameServer, player) {
 module.exports = Hill;
 
 Hill.prototype.update = function() {
-    if(this.mode = 1) {
+    if(this.mode) {
         //path find to hill
     }else {
         //path find to food

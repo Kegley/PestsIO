@@ -5,6 +5,7 @@ function PacketHandler(gameServer, socket) {
     this.gameServer = gameServer;
     this.socket = socket;
 
+
 }
 
 module.exports = PacketHandler;
@@ -17,7 +18,7 @@ PacketHandler.prototype.handleMessage = function(message) {
     }
     message = message.split(',');
     id = parseInt(message[0]);
-    console.log(message);
+    console.log("message: " + message);
 
     switch (id) {
         case 0:
@@ -36,9 +37,11 @@ PacketHandler.prototype.handleMessage = function(message) {
             break;
         case 1:
             console.log("Eating Food");
+            this.socket.player.setMode(0);
             break;
         case 2:
             console.log("Attacking Hill");
+            this.socket.player.setMode(1);
             break;
         case 255:
             // Connection Start
