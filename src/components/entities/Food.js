@@ -2,30 +2,24 @@ var Position = require('./Position');
 var Node = require('./Node');
 
 
-function (gameServer, player, location) {
-    console.log(location);
+function Food(gameServer, location) {
     Node.apply(this, Array.prototype.slice.call([gameServer, location]));
-    console.log(arguments);
-    this.gameServer = gameServer;
-    this.homeHill = homeHill;
-    this.player = player;
-    this.FoodID = this.gameServer.getNextNodeId();
     this.gameServer.addFood(this);
+    this.decayRate = 1;
 
-    this.hasTarget = false;
-    this.targetPosition = {}
-    console.log(this);
+    //get value of food 50 max// for now
+    this.value = Math.floor(Math.random() * (50 - 0 + 1)) + 0;
 }
 
 module.exports = Food;
 
 Food.prototype.update = function() {
-    if(this.homeHill.mode) {
-        //path find to hill
-        console.log("attacking");
-    }else {
-        //path find to food
-        console.log("looking for food");
+    if(this.value <= 0) {
+        this.remove(this);
+        return;
+    }
+    if(this.decay()) {
+        --this.value;
     }
 }
 
@@ -33,9 +27,26 @@ Food.prototype.remove = function() {
     this.gameServer.removeFood(this);
 }
 
-Food.prototype.move = function(x, y) {
-    //crude AF, need to do slow movement to location
-    //coming soon
-    this.position.x = x;
-    this.position.y = y;
+Food.prototype.eat = function(amt) {
+    //subtract eat amount if theres atleast that amount
+    if(this.value > amt) {
+        this.value = this.value - amt;
+        return amt;
+    }else {
+        //Don't let them eat more than is available
+        amt = this.value;
+        this.value = 0;
+        return amt;
+    }
+}
+
+Food.prototype.decay = function() {
+    var min = 0;
+    var max = 100;
+    willDecay = Math.floor(Math.random() * (max - min + 1)) + min;
+    return this.decayRate >= willDecay;
+}
+
+Food.prototype.print = function() {
+    return "Food: " + this.pad(this.nodeID, 3, " ") + " "+ this.position.print()
 }

@@ -1,14 +1,17 @@
 var Position = require('./Position');
 
 
-function Node(gameServer, location) {
-    console.log("Node Created");
-    console.log(arguments);
-    console.log(location);
-    this.position = new Position(location.x, location.y, location.direction);
-    this.lol = "LOL";
+function Node(gameServer, position) {
+    this.gameServer = gameServer;
+    this.position = position;
+    this.nodeID = this.gameServer.getNextNodeId();
 }
 
 module.exports = Node;
 
 //PATHFINDING HERE
+
+Node.prototype.move = function(x, y) {
+    this.position.x = x;
+    this.position.y = y;
+}

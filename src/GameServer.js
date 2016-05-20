@@ -5,8 +5,9 @@ var fs = require("fs");
 var Logs = require('./components/utils/Logs');
 var Messages = require('./components/WSMessages');
 
+var Position = require('./components/entities/Position');
 var Player = require('./components/entities/Player');
-
+var Food = require('./components/entities/Food');
 
 function GameServer() {
     console.log("Creating Game Server");
@@ -22,29 +23,37 @@ function GameServer() {
     this.time = +new Date;
     this.startTime = this.time;
     this.tick = 0;
-    this.fullTick = 0;
-    this.tickMain = 0;
-    this.tickSpawn = 0;
+    this.fullTick = 0; //movement tick
+    this.tickMain = 0; //main tick
+    this.tickSpawn = 0;//spawner tick
 
     //SERVER INFORMATION
     this.clients = [];
     this.hills = [];
     this.ants = [];
+    this.foods = [];
 
-    //REGISTRATION INFORMATION
+    //NODES/PLAYER INFORMATION
     this.lastPlayerId = 0;
-
+    this.lastNodeId = 0;
     //config for GameServer - May differ per node
     this.config = {
         mapBorderTop: 0,
         mapBorderBottom: 500,
         mapBorderLeft: 0,
         mapBorderRight: 500,
+        mapCenterX: 0,
+        mapCenterY: 0,
+        maxFood: 100,
         serverLogLevel: 2,
         serverPort: 443, // Server port
-
+        spawnInterval: 20, // The interval between each food cell spawn in ticks (1 tick = 50 ms)
 
     }
+
+    this.config.mapCenterY = Math.abs((this.config.mapBorderTop - this.config.mapBorderBottom) / 2);
+    this.config.mapCenterX = Math.abs((this.config.mapBorderLeft - this.config.mapBorderRight) / 2);
+    console.log(this.config)
 
 
 
@@ -72,7 +81,7 @@ GameServer.prototype.ConnectionSetup = function() {
     }, function() {
 
         //pre-setup-here
-
+        this.spawnFood();
         // Start Main Loop
         setInterval(this.mainLoop.bind(this), 1);
 
@@ -158,6 +167,8 @@ GameServer.prototype.mainLoop = function() {    // Timer
 
         if (this.fullTick >= 2) {
             // Loop main functions
+            setTimeout(this.spawnTick.bind(this), 0);
+            setTimeout(this.updateFood.bind(this), 0);
             setTimeout(this.updateClients.bind(this), 0);
             setTimeout(this.updateAnts.bind(this), 0);
             setTimeout(this.updateHills.bind(this), 0)
@@ -180,12 +191,107 @@ GameServer.prototype.mainLoop = function() {    // Timer
 };
 
 
+
+GameServer.prototype.moveClients = function() {
+    //sort clients by num ants
+
+}
+
+
+GameServer.prototype.spawnFood = function() {
+    var i = 0;
+    while(this.foods.length < this.config.maxFood) {
+        var f = new Food(this, this.getRandomPosition());
+        //f.setColor(this.getRandomColor());
+        ++i;
+    }
+    if(i > 0){
+        //console.log("Food Spawned: " + i + " - Total Food: " + this.foods.length);
+    }
+};
+
+GameServer.prototype.spawnTick = function() {
+    // Spawn food
+    this.tickSpawn++;
+    if (this.tickSpawn >= this.config.spawnInterval) {
+        this.spawnFood(); // Spawn food
+        this.tickSpawn = 0; // Reset
+    }
+};
+
+GameServer.prototype.updateAnts = function() {
+    for (var i = 0; i < this.ants.length; i++) {
+        this.ants[i].update();
+    }
+};
+
+GameServer.prototype.updateClients = function() {
+    for (var i = 0; i < this.clients.length; i++) {
+        if (typeof this.clients[i] == "undefined" || this.clients[i].player.nick == undefined) {
+            continue;
+        }
+        //console.log("Updating Client: " + this.clients[i].player.nick);
+        this.clients[i].player.update();
+    }
+};
+
+GameServer.prototype.updateFood = function() {
+    for (var i = 0; i < this.foods.length; i++) {
+        this.foods[i].update();
+    }
+};
+
+GameServer.prototype.updateHills = function() {
+    for (var i = 0; i < this.hills.length; i++) {
+        this.hills[i].update();
+    }
+};
+
+
+//if (this.readyState == WebSocket.OPEN && (this._socket.bufferSize == 0) && packet.build) {
+WebSocket.prototype.sendPacket = function(packet) {
+    msg = packet.build();
+    this.send(JSON.stringify({
+        msg: msg
+    }));
+    //this.readyState = WebSocket.CLOSED;
+    //this.emit('close');
+    //this.removeAllListeners();
+};
+
+/* +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
++++++++UTIL +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+*/
+
 GameServer.prototype.addAnt = function (ant) {
     this.ants.push(ant);
 }
 
 GameServer.prototype.addHill = function (hill) {
     this.hills.push(hill)
+}
+
+GameServer.prototype.addFood = function (food) {
+    this.foods.push(food);
+}
+
+GameServer.prototype.getClient = function (clientID) {
+    for(var i = 0; i < this.clients.length; ++i) {
+        if(clientID == this.clients[i].player.playerID){
+            return this.clients[i];
+        }
+    }
+    return null;
+}
+
+GameServer.prototype.getFood = function (foodID) {
+    for(var i = 0; i < this.foods.length; ++i) {
+        if(foodID == this.foods[i].nodeID){
+            return this.foods[i];
+        }
+    }
+    return null;
 }
 
 GameServer.prototype.getNextNodeId = function() {
@@ -204,9 +310,41 @@ GameServer.prototype.getNextPlayerID = function() {
     return this.lastPlayerId++;
 };
 
-GameServer.prototype.moveClients = function() {
 
-}
+
+GameServer.prototype.getRandomPosition = function() {
+    var xSum = this.config.mapBorderRight + this.config.mapBorderLeft;
+    var ySum = this.config.mapBorderBottom + this.config.mapBorderTop;
+    return new Position(
+        Math.floor(Math.random() * xSum - this.config.mapBorderLeft),
+        Math.floor(Math.random() * ySum - this.config.mapBorderTop)
+    );
+};
+
+GameServer.prototype.getRandomSpawn = function(mass) {
+    // Random and secure spawns for players and viruses
+    var pos = this.getRandomPosition();
+    var unsafe = false;
+
+    //var unsafe = this.willCollide(mass, pos, mass == this.config.virusStartMass);
+    var attempt = 1;
+
+    // Prevent stack overflow by counting attempts
+    while (true) {
+        if (!unsafe || attempt >= 15) break;
+        //pos = this.getRandomPosition();
+        //unsafe = this.willCollide(mass, pos, mass == this.config.virusStartMass);
+        unsafe = false;
+        attempt++;
+    }
+
+    // If it reached attempt 15, warn the user
+    if (attempt >= 14) {
+        console.log("[Server] Entity could not find save Hill Location");
+    }
+
+    return pos;
+};
 
 GameServer.prototype.removeAnt = function (ant) {
     var antID = -1;
@@ -239,6 +377,21 @@ GameServer.prototype.removeClient = function (client) {
     }
 };
 
+GameServer.prototype.removeFood = function (food) {
+    var foodID = -1;
+    for(var i = 0; i < this.foods.length; ++i) {
+        if(food == this.foods[i]){
+            foodID = i;
+            break;
+        }
+    }
+    if(foodID != -1) {
+        this.foods.splice(foodID, 1);
+    }else {
+        console.log("ERROR FINDING FOOD");
+    }
+};
+
 GameServer.prototype.removeHill = function (hill) {
     var hillID = -1;
     for(var i = 0; i < this.hills.length; ++i) {
@@ -252,48 +405,4 @@ GameServer.prototype.removeHill = function (hill) {
     }else {
         console.log("ERROR FINDING HILL");
     }
-};
-
-
-
-GameServer.prototype.spawnFood = function() {
-    var f = new Entity.Food(this.getNextNodeId(), null, this.getRandomPosition(), this.config.foodMass, this);
-    f.setColor(this.getRandomColor());
-
-    this.addNode(f);
-    this.currentFood++;
-};
-
-
-
-GameServer.prototype.updateAnts = function() {
-    for (var i = 0; i < this.ants.length; i++) {
-        this.ants[i].update();
-    }
-};
-
-GameServer.prototype.updateClients = function() {
-    for (var i = 0; i < this.clients.length; i++) {
-        if (typeof this.clients[i] == "undefined" || this.clients[i].player.nick == undefined) {
-            continue;
-        }
-        //console.log("Updating Client: " + this.clients[i].player.nick);
-        this.clients[i].player.update();
-    }
-};
-GameServer.prototype.updateHills = function() {
-    for (var i = 0; i < this.hills.length; i++) {
-        this.hills[i].update();
-    }
-};
-
-
-//if (this.readyState == WebSocket.OPEN && (this._socket.bufferSize == 0) && packet.build) {
-WebSocket.prototype.sendPacket = function(packet) {
-    this.send(JSON.stringify({
-        msg: packet
-    }));
-    //this.readyState = WebSocket.CLOSED;
-    //this.emit('close');
-    //this.removeAllListeners();
 };
