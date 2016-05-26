@@ -101,6 +101,7 @@ Commands.list = {
     },
     reloadfood: function(gameServer, split) {
         gameServer.foods = [];
+        gameServer.currentFoodMass = 0;
         gameServer.spawnFood();
     },
 };

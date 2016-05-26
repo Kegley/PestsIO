@@ -8,6 +8,8 @@ var Messages = require('./components/WSMessages');
 var Position = require('./components/entities/Position');
 var Player = require('./components/entities/Player');
 var Food = require('./components/entities/Food');
+var Node = require('./components/entities/Node');
+
 
 function GameServer() {
     console.log("Creating Game Server");
@@ -32,22 +34,26 @@ function GameServer() {
     this.hills = [];
     this.ants = [];
     this.foods = [];
+    this.currentFoodMass = 0;
+
 
     //NODES/PLAYER INFORMATION
     this.lastPlayerId = 0;
     this.lastNodeId = 0;
     //config for GameServer - May differ per node
     this.config = {
+        foodMaxSize: 100,
         mapBorderTop: 0,
-        mapBorderBottom: 500,
+        mapBorderBottom: 300,
         mapBorderLeft: 0,
-        mapBorderRight: 500,
+        mapBorderRight: 300,
         mapCenterX: 0,
         mapCenterY: 0,
-        maxFood: 100,
+        maxFood: 1000,
+        maxFoodMass: 10000,
         serverLogLevel: 2,
         serverPort: 443, // Server port
-        spawnInterval: 20, // The interval between each food cell spawn in ticks (1 tick = 50 ms)
+        spawnInterval: 250, // The interval between each food cell spawn in ticks (1 tick = 50 ms)
 
     }
 
@@ -55,8 +61,8 @@ function GameServer() {
     this.config.mapCenterX = Math.abs((this.config.mapBorderLeft - this.config.mapBorderRight) / 2);
     console.log(this.config)
 
-
-
+    this.testNode = new Node(this, new Position(1, 1));
+    this.testNode.setColor("#FFFFFF")
 }
 
 module.exports = GameServer;
@@ -178,6 +184,8 @@ GameServer.prototype.mainLoop = function() {    // Timer
             if (this.tickMain >= 4) { // 250 milliseconds
                 // Update leaderboard with the gamemode's method
                 //<<CODE HERE>>
+                this.testNode.destination = new Position(this.testNode.position.x + 1, this.testNode.position.y + 1)
+                //console.log(this.testNode.destination);
                 this.tickMain = 0; // Reset
             }
             this.fullTick = 0; // Reset
@@ -194,19 +202,23 @@ GameServer.prototype.mainLoop = function() {    // Timer
 
 GameServer.prototype.moveClients = function() {
     //sort clients by num ants
+    for (var i = 0; i < this.foods.length; i++) {
+        this.foods[i].move();
+    }
+    this.testNode.move();
 
 }
 
 
 GameServer.prototype.spawnFood = function() {
-    var i = 0;
-    while(this.foods.length < this.config.maxFood) {
+    var i = this.config.maxFood - this.foods.length;
+    console.log(i);
+    i = Math.min(Math.floor(Math.random() * (i - 0 + 1)) + 0, 100);
+    console.log(i);
+    while(i > 0) {
         var f = new Food(this, this.getRandomPosition());
-        //f.setColor(this.getRandomColor());
-        ++i;
-    }
-    if(i > 0){
-        //console.log("Food Spawned: " + i + " - Total Food: " + this.foods.length);
+        this.currentFoodMass += f.size;
+        --i;
     }
 };
 
@@ -220,6 +232,7 @@ GameServer.prototype.spawnTick = function() {
 };
 
 GameServer.prototype.updateAnts = function() {
+
     for (var i = 0; i < this.ants.length; i++) {
         this.ants[i].update();
     }
@@ -236,6 +249,9 @@ GameServer.prototype.updateClients = function() {
 };
 
 GameServer.prototype.updateFood = function() {
+    this.foods.sort(function(a, b) {
+        return b.size - a.size;
+    });
     for (var i = 0; i < this.foods.length; i++) {
         this.foods[i].update();
     }
@@ -284,6 +300,7 @@ GameServer.prototype.getClient = function (clientID) {
     }
     return null;
 }
+
 
 GameServer.prototype.getFood = function (foodID) {
     for(var i = 0; i < this.foods.length; ++i) {
@@ -386,6 +403,7 @@ GameServer.prototype.removeFood = function (food) {
         }
     }
     if(foodID != -1) {
+        this.currentFoodMass -= this.foods[foodID].size;
         this.foods.splice(foodID, 1);
     }else {
         console.log("ERROR FINDING FOOD");
@@ -405,4 +423,22 @@ GameServer.prototype.removeHill = function (hill) {
     }else {
         console.log("ERROR FINDING HILL");
     }
+};
+
+
+//***** MATH STUFF
+GameServer.prototype.abs = function(x) { // Because Math.abs is slow
+    return x < 0 ? -x : x;
+};
+
+GameServer.prototype.getAngle = function(x1, y1, x2, y2) {
+    var deltaY = y1 - y2;
+    var deltaX = x1 - x2;
+    return Math.atan2(deltaX, deltaY);
+};
+
+GameServer.prototype.getDist = function(x1, y1, x2, y2) { // Use Pythagoras theorem
+    var deltaX = this.abs(x1 - x2);
+    var deltaY = this.abs(y1 - y2);
+    return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 };

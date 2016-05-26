@@ -1,4 +1,5 @@
 var Player = require('./entities/Player');
+var Position = require('./entities/Position');
 
 function PacketHandler(gameServer, socket) {
     console.log("")
@@ -13,17 +14,17 @@ module.exports = PacketHandler;
 
 PacketHandler.prototype.handleMessage = function(message) {
     // Discard empty messages or invalid codes
+
+    message = JSON.parse(message);
     if (message.length == 0) {
         return;
     }
-    message = message.split(',');
-    id = parseInt(message[0]);
-    console.log("message: " + message);
-
+    id = message.id;
+    message = message.msg;
     switch (id) {
         case 0:
             // Check for invalid packet
-            if (message[1] === undefined) {
+            if (message == undefined) {
                 console.log("Broken");
                 //break;
             }
@@ -32,7 +33,7 @@ PacketHandler.prototype.handleMessage = function(message) {
             }
 
             // Set Nickname
-            nick = message[1];
+            nick = message;
             this.socket.player.init(nick);
             break;
         case 1:
@@ -42,6 +43,12 @@ PacketHandler.prototype.handleMessage = function(message) {
         case 2:
             console.log("Attacking Hill");
             this.socket.player.setMode(1);
+            break;
+        case 3://mousemovement
+            this.socket.player.mousePos.setPosition(message.x, message.y);
+            break;
+        case 4://mousemovement
+            console.log("Clicked @ " + message.x + ", " + message.y);
             break;
         case 255:
             // Connection Start

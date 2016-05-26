@@ -21,3 +21,10 @@ Position.prototype.getPosition = function() {
 Position.prototype.print = function() {
     return "x: " + this.pad(this.x, 5, " ") + ", y: " + this.pad(this.y, 5, " ");
 }
+
+Position.prototype.equals = function(position) {
+    if(this.x == position.x && this.y == position.y) {
+        return true;
+    }
+    return false;
+}
